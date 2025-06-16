@@ -3,31 +3,34 @@ import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 import pandas as pd
 
-# Alcance para la API de Google Sheets
+# Alcance para Google Sheets
 scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
 
-# Cargar las credenciales directamente desde secrets
+# Autenticación con las credenciales almacenadas en secrets
 credenciales = ServiceAccountCredentials.from_json_keyfile_dict(
     st.secrets["google_credentials"], scope
 )
 cliente = gspread.authorize(credenciales)
 
-# Abrir la hoja de cálculo (ajusta el nombre si es diferente)
-hoja = cliente.open("Inventario AYA").sheet1
+# ID único de tu hoja de cálculo (copiado del enlace)
+SHEET_ID = "1IIxcoPm9CKesyj86SP1u2wVTzRKrwj3SSha7vYEYRXE"
 
-# Obtener los registros actuales
+# Conectarse a la hoja
+hoja = cliente.open_by_key(SHEET_ID).sheet1
+
+# Obtener datos actuales
 datos = hoja.get_all_records()
 df = pd.DataFrame(datos)
 
-# Interfaz de la aplicación
+# Título de la app
 st.title("📦 Inventario Arismendy")
-st.markdown("Consulta y registro de recursos críticos en tiempo real.")
+st.markdown("Consulta y gestión de recursos críticos en tiempo real.")
 
-# Mostrar la tabla actual
+# Mostrar tabla de datos
 st.subheader("📋 Inventario actual")
 st.dataframe(df)
 
-# Formulario para agregar registros
+# Formulario para agregar nuevos registros
 st.subheader("➕ Agregar nuevo recurso")
 with st.form("formulario"):
     nombre = st.text_input("Nombre del recurso")
