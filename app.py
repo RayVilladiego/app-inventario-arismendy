@@ -13,7 +13,7 @@ SHEET_ID = "1IIxcoPm9CKesyj86SP1u2wVTzRKrwj3SSha7vYEYRXE"
 hoja = cliente.open_by_key(SHEET_ID).sheet1
 datos = hoja.get_all_records()
 df = pd.DataFrame(datos)
-df["Codigo"] = df["Codigo"].astype(str).str.zfill(6)  # ← mantiene ceros a la izquierda
+df["Codigo"] = df["Codigo"].astype(str).str.zfill(6)
 
 # Visual de estado
 estado_visual = {
@@ -35,16 +35,21 @@ def actualizar_producto(nombre, cantidad, tipo):
             fila_num = idx + 2
             entrada = int(fila["Entrada"])
             salida = int(fila["Salida"])
+            total = entrada - salida
+
+            if tipo == "salida" and cantidad > total:
+                return "stock_insuficiente"
+
             if tipo == "entrada":
                 entrada += cantidad
                 hoja.update_cell(fila_num, 7, entrada)
             elif tipo == "salida":
                 salida += cantidad
                 hoja.update_cell(fila_num, 8, salida)
-            total = entrada - salida
-            hoja.update_cell(fila_num, 9, total)
-            return True
-    return False
+
+            hoja.update_cell(fila_num, 9, entrada - salida)
+            return "ok"
+    return "no_encontrado"
 
 # Tabs
 tab1, tab2, tab3 = st.tabs(["📦 Inventario", "➕ Registro de producto", "📊 Dashboard"])
@@ -60,10 +65,10 @@ with tab1:
         cantidad_entrada = st.number_input("Cantidad a ingresar", min_value=1, step=1)
         enviar = st.form_submit_button("Registrar entrada")
         if enviar:
-            ok = actualizar_producto(nombre_entrada, cantidad_entrada, tipo="entrada")
-            if ok:
+            resultado = actualizar_producto(nombre_entrada, cantidad_entrada, tipo="entrada")
+            if resultado == "ok":
                 st.success("✅ Entrada registrada correctamente.")
-            else:
+            elif resultado == "no_encontrado":
                 st.error("❌ Producto no encontrado.")
 
     st.subheader("➖ Registrar salida de producto")
@@ -72,10 +77,12 @@ with tab1:
         cantidad_salida = st.number_input("Cantidad a retirar", min_value=1, step=1, key="salida_cantidad")
         retirar = st.form_submit_button("Registrar salida")
         if retirar:
-            ok = actualizar_producto(nombre_salida, cantidad_salida, tipo="salida")
-            if ok:
+            resultado = actualizar_producto(nombre_salida, cantidad_salida, tipo="salida")
+            if resultado == "ok":
                 st.success("✅ Salida registrada correctamente.")
-            else:
+            elif resultado == "stock_insuficiente":
+                st.warning("⚠️ No hay suficiente stock para retirar esa cantidad.")
+            elif resultado == "no_encontrado":
                 st.error("❌ Producto no encontrado.")
 
 # TAB 2
@@ -97,7 +104,7 @@ with tab2:
                 datos = hoja.get_all_records()
                 nueva_fila = [
                     len(datos) + 1,
-                    codigo.zfill(6),  # <-- asegura longitud fija al guardar
+                    codigo.zfill(6),
                     material,
                     medida,
                     int(minimo),
@@ -154,3 +161,4 @@ with tab3:
     )
     fig_rotacion.update_layout(yaxis=dict(categoryorder='total ascending'))
     st.plotly_chart(fig_rotacion)
+
