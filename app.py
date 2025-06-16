@@ -12,7 +12,7 @@ cliente = gspread.authorize(credenciales)
 SHEET_ID = "1IIxcoPm9CKesyj86SP1u2wVTzRKrwj3SSha7vYEYRXE"
 hoja = cliente.open_by_key(SHEET_ID).sheet1
 datos = hoja.get_all_records()
-df = pd.DataFrame(datos)
+df["Codigo"] = df["Codigo"].astype(str).str.zfill(6)  # o el número de dígitos que uses
 
 # Diccionario visual del estado
 estado_visual = {
