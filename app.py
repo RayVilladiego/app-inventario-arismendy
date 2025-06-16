@@ -4,7 +4,7 @@ from oauth2client.service_account import ServiceAccountCredentials
 import pandas as pd
 import plotly.express as px
 
-# Configuración
+# Autenticación con Google Sheets
 scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
 credenciales = ServiceAccountCredentials.from_json_keyfile_dict(
     st.secrets["google_credentials"], scope
@@ -16,7 +16,7 @@ hoja = cliente.open_by_key(SHEET_ID).sheet1
 datos = hoja.get_all_records()
 df = pd.DataFrame(datos)
 
-# Diccionario visual para estado
+# Visual de estado
 estado_visual = {
     "🔴 Bajo": "🔴 Bajo",
     "🟡 Alerta": "🟡 Alerta",
@@ -28,7 +28,7 @@ estado_visual = {
 df_visual = df.copy()
 df_visual["Estado"] = df_visual["Estado"].map(estado_visual).fillna("⚪ Sin estado")
 
-# Función para registrar entrada o salida
+# Función para actualizar entrada/salida
 def actualizar_producto(nombre, cantidad, tipo):
     datos = hoja.get_all_records()
     for idx, fila in enumerate(datos):
@@ -47,12 +47,10 @@ def actualizar_producto(nombre, cantidad, tipo):
             return True
     return False
 
-# Interfaz con pestañas
+# Interfaz con tabs
 tab1, tab2, tab3 = st.tabs(["📦 Inventario", "➕ Registro de producto", "📊 Dashboard"])
 
-# =======================
-# TAB 1: Inventario activo
-# =======================
+# TAB 1: Inventario
 with tab1:
     st.title("📦 Inventario Arismendy")
     st.dataframe(df_visual)
@@ -81,9 +79,7 @@ with tab1:
             else:
                 st.error("❌ Producto no encontrado.")
 
-# ===========================
-# TAB 2: Registro de productos
-# ===========================
+# TAB 2: Registrar nuevo producto
 with tab2:
     st.header("🆕 Registrar nuevo producto")
     with st.form("registro_nuevo_producto"):
@@ -101,7 +97,7 @@ with tab2:
             else:
                 datos = hoja.get_all_records()
                 nueva_fila = [
-                    len(datos) + 1,  # Item
+                    len(datos) + 1,
                     codigo,
                     material,
                     medida,
@@ -110,21 +106,25 @@ with tab2:
                     0,
                     0,
                     0,
-                    ""  # Estado lo calcula Sheets
+                    ""
                 ]
                 hoja.append_row(nueva_fila)
                 st.success("✅ Producto registrado exitosamente.")
 
-# ===========================
-# TAB 3: Dashboard de análisis
-# ===========================
+# TAB 3: Dashboard
 with tab3:
     st.header("📊 Dashboard de Inventario")
 
     df_dashboard = df.copy()
+
+    # ✅ Convertir columnas numéricas de forma segura
+    df_dashboard["Entrada"] = pd.to_numeric(df_dashboard["Entrada"], errors="coerce").fillna(0)
+    df_dashboard["Salida"] = pd.to_numeric(df_dashboard["Salida"], errors="coerce").fillna(0)
+    df_dashboard["Total"] = pd.to_numeric(df_dashboard["Total"], errors="coerce").fillna(0)
+
     df_dashboard["Rotacion"] = df_dashboard["Entrada"] + df_dashboard["Salida"]
 
-    # Métricas clave
+    # Métricas
     total_productos = len(df_dashboard)
     total_entrada = df_dashboard["Entrada"].sum()
     total_salida = df_dashboard["Salida"].sum()
@@ -132,12 +132,11 @@ with tab3:
 
     col1, col2, col3 = st.columns(3)
     col1.metric("Productos totales", total_productos)
-    col2.metric("Total entradas", total_entrada)
-    col3.metric("Total salidas", total_salida)
-
+    col2.metric("Total entradas", int(total_entrada))
+    col3.metric("Total salidas", int(total_salida))
     st.metric("Promedio de inventario", f"{promedio_total:.2f}")
 
-    # Gráfico de torta por estado
+    # Pie chart por estado
     estado_count = df_dashboard["Estado"].value_counts().reset_index()
     estado_count.columns = ["Estado", "Cantidad"]
     fig_estado = px.pie(
@@ -160,5 +159,3 @@ with tab3:
         color_continuous_scale="Blues"
     )
     st.plotly_chart(fig_rotacion)
-
-
