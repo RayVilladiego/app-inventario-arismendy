@@ -12,9 +12,10 @@ cliente = gspread.authorize(credenciales)
 SHEET_ID = "1IIxcoPm9CKesyj86SP1u2wVTzRKrwj3SSha7vYEYRXE"
 hoja = cliente.open_by_key(SHEET_ID).sheet1
 datos = hoja.get_all_records()
-df["Codigo"] = df["Codigo"].astype(str).str.zfill(6)  # o el número de dígitos que uses
+df = pd.DataFrame(datos)
+df["Codigo"] = df["Codigo"].astype(str).str.zfill(6)  # ← mantiene ceros a la izquierda
 
-# Diccionario visual del estado
+# Visual de estado
 estado_visual = {
     "🔴 Bajo": "🔴 Bajo",
     "🟡 Alerta": "🟡 Alerta",
@@ -45,10 +46,10 @@ def actualizar_producto(nombre, cantidad, tipo):
             return True
     return False
 
-# Tabs para navegación
+# Tabs
 tab1, tab2, tab3 = st.tabs(["📦 Inventario", "➕ Registro de producto", "📊 Dashboard"])
 
-# TAB 1: Inventario y movimientos
+# TAB 1
 with tab1:
     st.title("📦 Inventario Arismendy")
     st.dataframe(df_visual)
@@ -77,7 +78,7 @@ with tab1:
             else:
                 st.error("❌ Producto no encontrado.")
 
-# TAB 2: Registro de nuevos productos
+# TAB 2
 with tab2:
     st.header("🆕 Registrar nuevo producto")
     with st.form("registro_nuevo_producto"):
@@ -96,7 +97,7 @@ with tab2:
                 datos = hoja.get_all_records()
                 nueva_fila = [
                     len(datos) + 1,
-                    codigo,
+                    codigo.zfill(6),  # <-- asegura longitud fija al guardar
                     material,
                     medida,
                     int(minimo),
@@ -109,7 +110,7 @@ with tab2:
                 hoja.append_row(nueva_fila)
                 st.success("✅ Producto registrado exitosamente.")
 
-# TAB 3: Dashboard de análisis
+# TAB 3
 with tab3:
     st.header("📊 Dashboard de Inventario")
 
@@ -119,7 +120,6 @@ with tab3:
     df_dashboard["Total"] = pd.to_numeric(df_dashboard["Total"], errors="coerce").fillna(0)
     df_dashboard["Rotacion"] = df_dashboard["Entrada"] + df_dashboard["Salida"]
 
-    # Métricas clave
     total_productos = len(df_dashboard)
     total_entrada = df_dashboard["Entrada"].sum()
     total_salida = df_dashboard["Salida"].sum()
@@ -131,7 +131,6 @@ with tab3:
     col3.metric("Total salidas", int(total_salida))
     st.metric("Promedio de inventario", f"{promedio_total:.2f}")
 
-    # Pie chart
     estado_count = df_dashboard["Estado"].value_counts().reset_index()
     estado_count.columns = ["Estado", "Cantidad"]
     fig_estado = px.pie(
@@ -143,7 +142,6 @@ with tab3:
     )
     st.plotly_chart(fig_estado)
 
-    # Bar chart horizontal: productos en eje Y
     top_rotacion = df_dashboard.sort_values(by="Rotacion", ascending=False).head(10)
     fig_rotacion = px.bar(
         top_rotacion,
