@@ -13,7 +13,7 @@ SHEET_ID = "1IIxcoPm9CKesyj86SP1u2wVTzRKrwj3SSha7vYEYRXE"
 hoja = cliente.open_by_key(SHEET_ID).sheet1
 datos = hoja.get_all_records()
 df = pd.DataFrame(datos)
-df["Codigo"] = df["Codigo"].astype(str).str.zfill(6)
+df["Codigo"] = df["Codigo"].astype(str).str.zfill(6)  # Mantiene ceros a la izquierda
 
 # Visual de estado
 estado_visual = {
@@ -27,31 +27,28 @@ estado_visual = {
 df_visual = df.copy()
 df_visual["Estado"] = df_visual["Estado"].map(estado_visual).fillna("⚪ Sin estado")
 
-# Función para actualizar producto
+# Función para actualizar producto (ajustada a estructura real)
 def actualizar_producto(nombre, cantidad, tipo):
     datos = hoja.get_all_records()
     for idx, fila in enumerate(datos):
         if fila["Material"].strip().lower() == nombre.strip().lower():
-            fila_num = idx + 2
+            fila_num = idx + 2  # +2 por encabezado
             entrada = int(fila["Entrada"])
             salida = int(fila["Salida"])
-            total = entrada - salida
-
-            if tipo == "salida" and cantidad > total:
-                return "stock_insuficiente"
 
             if tipo == "entrada":
                 entrada += cantidad
-                hoja.update_cell(fila_num, 7, entrada)
+                hoja.update_cell(fila_num, 6, entrada)  # Entrada → columna F
             elif tipo == "salida":
                 salida += cantidad
-                hoja.update_cell(fila_num, 8, salida)
+                hoja.update_cell(fila_num, 7, salida)  # Salida → columna G
 
-            hoja.update_cell(fila_num, 9, entrada - salida)
-            return "ok"
-    return "no_encontrado"
+            total = entrada - salida
+            hoja.update_cell(fila_num, 8, total)  # Total → columna H
+            return True
+    return False
 
-# Tabs
+# Interfaz
 tab1, tab2, tab3 = st.tabs(["📦 Inventario", "➕ Registro de producto", "📊 Dashboard"])
 
 # TAB 1
@@ -65,10 +62,10 @@ with tab1:
         cantidad_entrada = st.number_input("Cantidad a ingresar", min_value=1, step=1)
         enviar = st.form_submit_button("Registrar entrada")
         if enviar:
-            resultado = actualizar_producto(nombre_entrada, cantidad_entrada, tipo="entrada")
-            if resultado == "ok":
+            ok = actualizar_producto(nombre_entrada, cantidad_entrada, tipo="entrada")
+            if ok:
                 st.success("✅ Entrada registrada correctamente.")
-            elif resultado == "no_encontrado":
+            else:
                 st.error("❌ Producto no encontrado.")
 
     st.subheader("➖ Registrar salida de producto")
@@ -77,12 +74,10 @@ with tab1:
         cantidad_salida = st.number_input("Cantidad a retirar", min_value=1, step=1, key="salida_cantidad")
         retirar = st.form_submit_button("Registrar salida")
         if retirar:
-            resultado = actualizar_producto(nombre_salida, cantidad_salida, tipo="salida")
-            if resultado == "ok":
+            ok = actualizar_producto(nombre_salida, cantidad_salida, tipo="salida")
+            if ok:
                 st.success("✅ Salida registrada correctamente.")
-            elif resultado == "stock_insuficiente":
-                st.warning("⚠️ No hay suficiente stock para retirar esa cantidad.")
-            elif resultado == "no_encontrado":
+            else:
                 st.error("❌ Producto no encontrado.")
 
 # TAB 2
