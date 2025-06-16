@@ -2,28 +2,32 @@ import streamlit as st
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 import pandas as pd
+import json
 
-# Configurar alcance (scope) de la API de Google
+# Configurar el alcance para Google Sheets
 scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-credenciales = ServiceAccountCredentials.from_json_keyfile_name("credenciales.json", scope)
+
+# Leer las credenciales desde los secrets de Streamlit
+credenciales_dict = json.loads(st.secrets["GOOGLE_SHEETS_CREDENTIALS"])
+credenciales = ServiceAccountCredentials.from_json_keyfile_dict(credenciales_dict, scope)
 cliente = gspread.authorize(credenciales)
 
-# Abrir la hoja de cálculo de Google Sheets (ajusta el nombre si es diferente)
+# Abrir la hoja de cálculo (ajusta si el nombre cambia)
 hoja = cliente.open("Inventario AYA").sheet1
 
-# Obtener todos los registros como diccionarios
+# Obtener los datos actuales como DataFrame
 datos = hoja.get_all_records()
 df = pd.DataFrame(datos)
 
-# Título principal
-st.title("📦 Inventario Arismendy (Conectado a Google Sheets)")
-st.write("Consulta y actualización en tiempo real del inventario crítico de recursos.")
+# UI de la app
+st.title("📦 Inventario Arismendy (Google Sheets)")
+st.markdown("Consulta y registra recursos críticos en tiempo real.")
 
-# Mostrar tabla del inventario
+# Mostrar tabla de inventario
 st.subheader("📋 Inventario actual")
 st.dataframe(df)
 
-# Formulario para agregar nuevo recurso
+# Formulario para agregar nuevos recursos
 st.subheader("➕ Agregar nuevo recurso")
 with st.form("formulario"):
     nombre = st.text_input("Nombre del recurso")
