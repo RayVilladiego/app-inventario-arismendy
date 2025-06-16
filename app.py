@@ -13,7 +13,7 @@ SHEET_ID = "1IIxcoPm9CKesyj86SP1u2wVTzRKrwj3SSha7vYEYRXE"
 hoja = cliente.open_by_key(SHEET_ID).sheet1
 datos = hoja.get_all_records()
 df = pd.DataFrame(datos)
-df["Codigo"] = df["Codigo"].astype(str).str.zfill(6)  # Mantiene ceros a la izquierda
+df["Codigo"] = df["Codigo"].astype(str).str.zfill(6)
 
 # Visual de estado
 estado_visual = {
@@ -27,12 +27,12 @@ estado_visual = {
 df_visual = df.copy()
 df_visual["Estado"] = df_visual["Estado"].map(estado_visual).fillna("⚪ Sin estado")
 
-# Función para actualizar producto (ajustada a estructura real)
+# Función para actualizar producto
 def actualizar_producto(nombre, cantidad, tipo):
     datos = hoja.get_all_records()
     for idx, fila in enumerate(datos):
         if fila["Material"].strip().lower() == nombre.strip().lower():
-            fila_num = idx + 2  # +2 por encabezado
+            fila_num = idx + 2  # encabezado en fila 1
             entrada = int(fila["Entrada"])
             salida = int(fila["Salida"])
 
@@ -96,18 +96,17 @@ with tab2:
             elif minimo >= maximo:
                 st.warning("❗ El valor mínimo debe ser menor que el máximo.")
             else:
-                datos = hoja.get_all_records()
                 nueva_fila = [
-                    len(datos) + 1,
-                    codigo.zfill(6),
+                    codigo.zfill(6),  # columna A
                     material,
                     medida,
                     int(minimo),
                     int(maximo),
-                    0,
-                    0,
-                    0,
-                    ""
+                    0,  # Entrada (F)
+                    0,  # Salida (G)
+                    0,  # Total (H)
+                    "",  # Total inventario (I)
+                    ""   # Estado (J)
                 ]
                 hoja.append_row(nueva_fila)
                 st.success("✅ Producto registrado exitosamente.")
@@ -156,4 +155,3 @@ with tab3:
     )
     fig_rotacion.update_layout(yaxis=dict(categoryorder='total ascending'))
     st.plotly_chart(fig_rotacion)
-
