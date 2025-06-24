@@ -1,29 +1,22 @@
 import streamlit as st
 import pandas as pd
 from db import obtener_datos
+from utils import calcular_estado
 
-def dashboard():
-    st.title("📊 Dashboard General de Inventario")
+def dashboard_screen():
+    st.title("📊 Dashboard de Inventario")
 
     df = obtener_datos()
+    st.dataframe(df)
 
-    if df.empty:
-        st.warning("No hay datos disponibles.")
-        return
+    # Mostrar conteo por estado
+    estados = df['producto'].apply(calcular_estado)
+    conteo = estados.value_counts().reset_index()
+    conteo.columns = ['Estado', 'Cantidad']
 
-    # KPI principales
-    total_productos = df['producto'].nunique()
-    total_unidades = df['Total'].sum()
-    productos_bajo = df[df['Estado'] == 'Bajo'].shape[0]
-    productos_alerta = df[df['Estado'] == 'Alerta'].shape[0]
+    st.subheader("Resumen de estado de inventario")
+    st.bar_chart(conteo.set_index('Estado'))
 
-    col1, col2, col3, col4 = st.columns(4)
-    col1.metric("🧾 Productos únicos", total_productos)
-    col2.metric("📦 Total unidades", int(total_unidades))
-    col3.metric("🔴 En estado BAJO", productos_bajo)
-    col4.metric("🟠 En ALERTA", productos_alerta)
-
-    st.markdown("---")
-    st.subheader("🔍 Estado del inventario")
-
-    st.dataframe(df.sort_values("Estado", ascending=True), use_container_width=True)
+    st.subheader("Top 5 productos con menor stock")
+    top_bajos = df.sort_values('Total').head(5)
+    st.table(top_bajos[['producto', 'Total']])
