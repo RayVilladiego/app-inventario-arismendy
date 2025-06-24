@@ -1,22 +1,26 @@
 import streamlit as st
 import pandas as pd
-from db import obtener_datos_productos
+from db import obtener_datos, actualizar_stock_fisico
+from utils import recalcular_estado_global
 
-def modulo_auditoria():
-    st.title("🕵️ Módulo de Auditoría - Control y Verificación de Inventario")
+def auditor():
+    st.title("🧮 Módulo de Auditoría de Inventario")
 
-    st.write("📋 Aquí puedes visualizar el estado actual del inventario y registrar los conteos físicos para comparar.")
+    df = obtener_datos()
 
-    df = obtener_datos_productos()
     if df.empty:
-        st.warning("No hay productos registrados.")
+        st.warning("No hay datos para auditar.")
         return
 
-    df['Conteo Físico'] = 0
+    st.subheader("📝 Ingreso de conteo físico")
+    producto = st.selectbox("Selecciona un producto", df['producto'].unique())
+    conteo_fisico = st.number_input("Cantidad física encontrada", min_value=0, step=1)
 
-    conteo = st.experimental_data_editor(df[['codigo', 'material', 'medida', 'total', 'Conteo Físico']], num_rows="dynamic", use_container_width=True)
+    if st.button("Registrar conteo físico"):
+        actualizar_stock_fisico(producto, conteo_fisico)
+        nuevo_estado = recalcular_estado_global(producto)
+        st.success(f"✅ Conteo físico actualizado. Nuevo estado: {nuevo_estado}")
 
-    if st.button("📊 Comparar Inventario Físico vs. Sistema"):
-        conteo['Diferencia'] = conteo['Conteo Físico'] - conteo['total']
-        st.dataframe(conteo, use_container_width=True)
-        st.success("✅ Comparación realizada. Revisa la columna 'Diferencia' para identificar inconsistencias.")
+    st.markdown("---")
+    st.subheader("📋 Comparación de Inventario Digital vs Físico")
+    st.dataframe(df[['producto', 'Total', 'Fisico', 'Estado']], use_container_width=True)
