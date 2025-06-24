@@ -1,22 +1,22 @@
 import streamlit as st
-import pandas as pd
 from db import obtener_datos
-from utils import calcular_estado
 
 def dashboard_screen():
     st.title("📊 Dashboard de Inventario")
 
     df = obtener_datos()
-    st.dataframe(df)
 
-    # Mostrar conteo por estado
-    estados = df['producto'].apply(calcular_estado)
-    conteo = estados.value_counts().reset_index()
-    conteo.columns = ['Estado', 'Cantidad']
+    if df.empty:
+        st.warning("No hay datos disponibles en la tabla 'inventario'.")
+        return
 
-    st.subheader("Resumen de estado de inventario")
-    st.bar_chart(conteo.set_index('Estado'))
+    st.subheader("📦 Tabla de inventario actual")
+    st.dataframe(df, use_container_width=True)
 
-    st.subheader("Top 5 productos con menor stock")
-    top_bajos = df.sort_values('Total').head(5)
-    st.table(top_bajos[['producto', 'Total']])
+    # Indicador de criticidad
+    df["estado"] = df.apply(lambda row: calcular_estado(row["cantidad"], row["min_stock"]), axis=1)
+    colores = {"OK": "🟢", "Alerta": "🟠", "Bajo": "🔴"}
+    df["estado"] = df["estado"].map(colores)
+
+    st.subheader("🚦 Estado crítico de inventario")
+    st.dataframe(df[["nombre", "cantidad", "min_stock", "max_stock", "estado"]], use_container_width=True)
