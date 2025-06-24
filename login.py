@@ -1,25 +1,26 @@
 import streamlit as st
 
-# Usuarios de prueba (puedes agregar más)
-USUARIOS = {
-    "admin": {"password": "1234", "rol": "Compras"},
-    "almacen": {"password": "4567", "rol": "Almacén"},
-    "auditor": {"password": "7890", "rol": "Auditor"}
+# Diccionario simulado de usuarios
+usuarios = {
+    "admin": {"contraseña": "1234", "rol": "Compras"},
+    "almacen": {"contraseña": "almacen123", "rol": "Almacén"},
+    "auditor": {"contraseña": "auditor123", "rol": "Auditor"}
 }
 
-def login():
-    st.title("Bienvenido al sistema de gestión de inventario")
-    st.subheader("División de Almacén - Arismendy")
+def login_screen():
+    st.title("🔐 Sistema de Inventario Arismendy")
+    st.subheader("Inicio de sesión")
 
     usuario = st.text_input("Usuario")
     contraseña = st.text_input("Contraseña", type="password")
-    boton_login = st.button("Iniciar sesión")
+    login_btn = st.button("Iniciar sesión")
 
-    if boton_login:
-        if usuario in USUARIOS and USUARIOS[usuario]["password"] == contraseña:
-            st.success(f"Inicio de sesión exitoso como {USUARIOS[usuario]['rol']}")
-            st.session_state["usuario"] = usuario
-            st.session_state["rol"] = USUARIOS[usuario]["rol"]
-            st.session_state["autenticado"] = True
+    if login_btn:
+        if usuario in usuarios and usuarios[usuario]["contraseña"] == contraseña:
+            st.session_state.autenticado = True
+            st.session_state.usuario = usuario
+            st.session_state.rol = usuarios[usuario]["rol"]
+            st.success(f"Bienvenido, {usuario}")
+            st.experimental_rerun()
         else:
             st.error("Usuario o contraseña incorrectos")
