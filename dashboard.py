@@ -1,21 +1,29 @@
-# dashboard.py
-
 import streamlit as st
-from db import fetch_query
+import pandas as pd
+from db import get_all_inventory
 
-def run():
-    st.title("📈 Dashboard General")
+def mostrar_dashboard():
+    st.title("📊 Dashboard de Inventario")
 
-    df = fetch_query("SELECT * FROM inventario ORDER BY nombre ASC")
+    data = get_all_inventory()
 
-    st.markdown("### 🧮 Estado General del Inventario")
-    st.dataframe(df)
+    if data.empty:
+        st.warning("No hay datos en el inventario aún.")
+        return
 
-    bajo = df[df["estado"] == "Bajo"]
-    alerta = df[df["estado"] == "Alerta"]
-    ok = df[df["estado"] == "OK"]
+    st.subheader("Resumen general")
 
-    col1, col2, col3 = st.columns(3)
-    col1.metric("Productos OK", len(ok))
-    col2.metric("En Alerta", len(alerta), delta=len(alerta))
-    col3.metric("Stock Bajo", len(bajo), delta=len(bajo))
+    total_productos = len(data)
+    productos_bajo_stock = len(data[data["estado"] == "Bajo"])
+    productos_alerta = len(data[data["estado"] == "Alerta"])
+    productos_ok = len(data[data["estado"] == "OK"])
+
+    col1, col2, col3, col4 = st.columns(4)
+    col1.metric("Productos Totales", total_productos)
+    col2.metric("🟥 Bajo", productos_bajo_stock)
+    col3.metric("🟧 Alerta", productos_alerta)
+    col4.metric("🟩 OK", productos_ok)
+
+    st.divider()
+    st.subheader("📦 Detalles del Inventario")
+    st.dataframe(data, use_container_width=True)
