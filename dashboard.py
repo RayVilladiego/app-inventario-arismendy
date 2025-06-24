@@ -10,10 +10,12 @@ def dashboard_screen():
         st.warning("⚠️ No hay datos en el inventario.")
         return
 
-    df["Estado"] = df.apply(lambda row: calcular_estado(row["cantidad"], row["min_stock"], row["max_stock"]), axis=1)
+    # Ajuste en los nombres de columnas
+    df["Estado"] = df.apply(lambda row: calcular_estado(row["cantidad"], row["min"], row["max"]), axis=1)
     df["Color"] = df["Estado"].map(color_estado)
 
     def color_fila(row):
         return [f"background-color: {row['Color']}" for _ in row]
 
+    # Ocultar la columna "Color" en la visualización
     st.dataframe(df.style.apply(color_fila, axis=1).hide(axis="columns", subset=["Color"]))
