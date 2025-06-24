@@ -3,7 +3,7 @@ import pandas as pd
 from db import obtener_datos, actualizar_stock_fisico
 from utils import recalcular_estado_global
 
-def auditor():
+def auditor_screen():
     st.title("🧮 Módulo de Auditoría de Inventario")
 
     df = obtener_datos()
