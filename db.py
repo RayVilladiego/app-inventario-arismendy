@@ -70,3 +70,12 @@ def obtener_datos():
     conn.close()
     return df
 
+def actualizar_stock_fisico(nombre, cantidad_fisica):
+    conn = conectar()
+    cur = conn.cursor()
+    cur.execute("UPDATE inventario SET cantidad = %s WHERE nombre = %s", (cantidad_fisica, nombre))
+    conn.commit()
+    cur.close()
+    conn.close()
+
+
