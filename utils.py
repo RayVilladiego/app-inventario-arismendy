@@ -48,3 +48,13 @@ def recalcular_estado_global(producto):
     except Exception as e:
         return f"Error: {str(e)}"
 
+# ✅ Función auxiliar para color del estado
+def color_estado(estado):
+    colores = {
+        "Bajo": "red",
+        "Alerta": "orange",
+        "OK": "green",
+        "Producto no encontrado": "gray",
+        "Datos incompletos": "gray",
+    }
+    return colores.get(estado, "black")
