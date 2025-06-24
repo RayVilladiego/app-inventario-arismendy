@@ -1,39 +1,41 @@
-# db.py
-
 import psycopg2
 import pandas as pd
 
-DB_CONFIG = {
-    "host": "aws-0-us-east-2.pooler.supabase.com",
-    "port": "6543",
-    "dbname": "postgres",
-    "user": "postgres.jmjbygwaatketijoifrw",
-    "password": "Raybarcelona12345*"
-}
+# Parámetros de conexión al Transaction Pooler de Supabase
+DB_HOST = "aws-0-us-east-2.pooler.supabase.com"
+DB_NAME = "postgres"
+DB_USER = "postgres.jmjbygwaatketijoifrw"
+DB_PASSWORD = "Raybarcelona12345*"
+DB_PORT = "6543"
 
-def get_connection():
-    return psycopg2.connect(**DB_CONFIG)
+def conectar():
+    try:
+        conn = psycopg2.connect(
+            host=DB_HOST,
+            database=DB_NAME,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            port=DB_PORT
+        )
+        return conn
+    except Exception as e:
+        print("Error de conexión:", e)
+        return None
 
-def fetch_query(query, params=None):
-    conn = get_connection()
-    df = pd.read_sql_query(query, conn, params=params)
-    conn.close()
-    return df
-
-def execute_query(query, params=None):
-    conn = get_connection()
-    cur = conn.cursor()
-    cur.execute(query, params)
-    conn.commit()
-    cur.close()
-    conn.close()
-
-def insert_and_return(query, params):
-    conn = get_connection()
-    cur = conn.cursor()
-    cur.execute(query, params)
-    result = cur.fetchone()
-    conn.commit()
-    cur.close()
-    conn.close()
+def ejecutar_consulta(query, params=None, fetch=False):
+    conn = conectar()
+    result = None
+    if conn:
+        try:
+            cursor = conn.cursor()
+            cursor.execute(query, params)
+            if fetch:
+                columns = [desc[0] for desc in cursor.description]
+                result = pd.DataFrame(cursor.fetchall(), columns=columns)
+            conn.commit()
+            cursor.close()
+        except Exception as e:
+            print("Error al ejecutar la consulta:", e)
+        finally:
+            conn.close()
     return result
