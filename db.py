@@ -1,41 +1,62 @@
 import psycopg2
 import pandas as pd
+import streamlit as st
 
-# Parámetros de conexión al Transaction Pooler de Supabase
-DB_HOST = "aws-0-us-east-2.pooler.supabase.com"
-DB_NAME = "postgres"
-DB_USER = "postgres.jmjbygwaatketijoifrw"
-DB_PASSWORD = "Raybarcelona12345*"
-DB_PORT = "6543"
+# Reemplaza con tu cadena de conexión real
+DB_URL = "postgresql://postgres.jmjbygwaatketijoifrw:Raybarcelona12345*@aws-0-us-east-2.pooler.supabase.com:6543/postgres"
 
+@st.cache_resource
 def conectar():
-    try:
-        conn = psycopg2.connect(
-            host=DB_HOST,
-            database=DB_NAME,
-            user=DB_USER,
-            password=DB_PASSWORD,
-            port=DB_PORT
-        )
-        return conn
-    except Exception as e:
-        print("Error de conexión:", e)
-        return None
+    return psycopg2.connect(DB_URL)
 
-def ejecutar_consulta(query, params=None, fetch=False):
+def obtener_datos():
     conn = conectar()
-    result = None
-    if conn:
-        try:
-            cursor = conn.cursor()
-            cursor.execute(query, params)
-            if fetch:
-                columns = [desc[0] for desc in cursor.description]
-                result = pd.DataFrame(cursor.fetchall(), columns=columns)
-            conn.commit()
-            cursor.close()
-        except Exception as e:
-            print("Error al ejecutar la consulta:", e)
-        finally:
-            conn.close()
-    return result
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM inventario;")
+    columnas = [desc[0] for desc in cursor.description]
+    datos = cursor.fetchall()
+    df = pd.DataFrame(datos, columns=columnas)
+    cursor.close()
+    conn.close()
+    return df
+
+def obtener_productos():
+    df = obtener_datos()
+    return sorted(df['producto'].unique())
+
+def insertar_movimiento(producto, cantidad, tipo):
+    conn = conectar()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO movimientos (producto, cantidad, tipo, fecha)
+        VALUES (%s, %s, %s, NOW());
+    """, (producto, cantidad, tipo))
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+def actualizar_stock(producto, cantidad, tipo):
+    conn = conectar()
+    cursor = conn.cursor()
+    operador = '+' if tipo == 'entrada' else '-'
+    cursor.execute(f"""
+        UPDATE inventario
+        SET total = GREATEST(total {operador} %s, 0)
+        WHERE producto = %s;
+    """, (cantidad, producto))
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+def actualizar_stock_fisico(producto, cantidad_fisico):
+    conn = conectar()
+    cursor = conn.cursor()
+    cursor.execute("""
+        UPDATE inventario
+        SET fisico = %s
+        WHERE producto = %s;
+    """, (cantidad_fisico, producto))
+    conn.commit()
+    cursor.close()
+    conn.close()
+
