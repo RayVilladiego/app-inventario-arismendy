@@ -1,29 +1,18 @@
 import streamlit as st
-from db import insertar_producto, actualizar_stock
-import pandas as pd
+from db import insertar_movimiento, obtener_productos, actualizar_stock
+from utils import calcular_estado
 
-def modulo_compras():
-    st.title("🛒 Módulo de Compras - Ingreso de Materiales")
+def compras():
+    st.title("🛒 Módulo de Compras")
 
-    with st.form("form_compras"):
-        codigo = st.text_input("Código del producto")
-        material = st.text_input("Nombre del material")
-        medida = st.text_input("Unidad de medida (ej: UND, KG, GAL)")
-        cantidad = st.number_input("Cantidad a ingresar", min_value=1, step=1)
-        minimo = st.number_input("Cantidad mínima recomendada", min_value=0, step=1)
-        maximo = st.number_input("Cantidad máxima recomendada", min_value=0, step=1)
-        submit = st.form_submit_button("Registrar")
+    productos = obtener_productos()
+    producto = st.selectbox("Selecciona un producto", productos)
 
-    if submit:
-        if not all([codigo, material, medida]):
-            st.warning("Por favor completa todos los campos obligatorios.")
-        else:
-            # Intenta insertar primero. Si ya existe, actualiza.
-            exito = insertar_producto(codigo, material, medida, cantidad, minimo, maximo)
-            if exito:
-                st.success("✔ Producto ingresado correctamente.")
-            else:
-                actualizado = actualizar_stock(codigo, cantidad, movimiento="entrada")
-                if actualizado:
-                    st.success("✔ Producto ya existía. Cantidad actualizada.")
-                else:
+    cantidad = st.number_input("Cantidad a ingresar", min_value=1, step=1)
+
+    if st.button("Registrar entrada"):
+        insertar_movimiento(producto, cantidad, "entrada")
+        actualizar_stock(producto, cantidad, tipo="entrada")
+
+        nuevo_estado = calcular_estado(producto)
+        st.success(f"✅ Entrada registrada. Nuevo estado del producto: {nuevo_estado}")
