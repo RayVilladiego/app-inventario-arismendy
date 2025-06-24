@@ -1,22 +1,19 @@
 import streamlit as st
 from db import obtener_datos
+from utils import calcular_estado, color_estado
 
 def dashboard_screen():
     st.title("📊 Dashboard de Inventario")
 
     df = obtener_datos()
-
     if df.empty:
-        st.warning("No hay datos disponibles en la tabla 'inventario'.")
+        st.warning("⚠️ No hay datos en el inventario.")
         return
 
-    st.subheader("📦 Tabla de inventario actual")
-    st.dataframe(df, use_container_width=True)
+    df["Estado"] = df.apply(lambda row: calcular_estado(row["cantidad"], row["min_stock"], row["max_stock"]), axis=1)
+    df["Color"] = df["Estado"].map(color_estado)
 
-    # Indicador de criticidad
-    df["estado"] = df.apply(lambda row: calcular_estado(row["cantidad"], row["min_stock"]), axis=1)
-    colores = {"OK": "🟢", "Alerta": "🟠", "Bajo": "🔴"}
-    df["estado"] = df["estado"].map(colores)
+    def color_fila(row):
+        return [f"background-color: {row['Color']}" for _ in row]
 
-    st.subheader("🚦 Estado crítico de inventario")
-    st.dataframe(df[["nombre", "cantidad", "min_stock", "max_stock", "estado"]], use_container_width=True)
+    st.dataframe(df.style.apply(color_fila, axis=1).hide(axis="columns", subset=["Color"]))
