@@ -1,38 +1,22 @@
-# modules/mod_almacen.py
-
 import streamlit as st
-from db import fetch_query, execute_query
-from datetime import datetime
-from utils import calcular_estado
+from db import actualizar_stock
+import pandas as pd
 
-def run():
-    st.title("🏷️ Módulo Almacén - Entrada / Salida")
+def modulo_almacen():
+    st.title("📦 Módulo de Almacén - Registro de Entradas/Salidas")
 
-    df = fetch_query("SELECT * FROM inventario ORDER BY nombre ASC")
+    with st.form("form_almacen"):
+        codigo = st.text_input("Código del producto")
+        cantidad = st.number_input("Cantidad", min_value=1, step=1)
+        movimiento = st.radio("Tipo de movimiento", ["entrada", "salida"])
+        submit = st.form_submit_button("Registrar movimiento")
 
-    codigo = st.selectbox("Selecciona un producto", df["codigo"] + " - " + df["nombre"])
-    movimiento = st.selectbox("Tipo de movimiento", ["Entrada", "Salida"])
-    cantidad = st.number_input("Cantidad", min_value=1, step=1)
-    operario = st.text_input("Operario responsable")
-
-    if st.button("Registrar movimiento"):
-        selected = df[df["codigo"] == codigo.split(" - ")[0]].iloc[0]
-        nuevo_total = selected["total"] + cantidad if movimiento == "Entrada" else selected["total"] - cantidad
-
-        if nuevo_total < 0:
-            st.error("No hay suficiente inventario para la salida.")
-            return
-
-        estado = calcular_estado(nuevo_total, selected["min"], selected["max"])
-
-        # Actualizar inventario
-        execute_query("UPDATE inventario SET total = %s, estado = %s WHERE codigo = %s",
-                      (nuevo_total, estado, selected["codigo"]))
-
-        # Registrar movimiento
-        execute_query("""
-            INSERT INTO movimientos (fecha, codigo, movimiento, cantidad, operario, total_final)
-            VALUES (%s, %s, %s, %s, %s, %s)
-        """, (datetime.now(), selected["codigo"], movimiento, cantidad, operario, nuevo_total))
-
-        st.success(f"Movimiento registrado. Nuevo total: {nuevo_total}")
+    if submit:
+        if not codigo:
+            st.warning("⚠️ Debes ingresar el código del producto.")
+        else:
+            exito = actualizar_stock(codigo, cantidad, movimiento=movimiento)
+            if exito:
+                st.success(f"✔ Movimiento de {movimiento} registrado correctamente.")
+            else:
+                st.error("❌ Error al registrar el movimiento. Revisa si el producto existe o si hay suficiente stock.")
