@@ -1,62 +1,63 @@
 import psycopg2
-import pandas as pd
 import streamlit as st
 
-# Reemplaza con tu cadena de conexión real
+# Conexión a tu base de datos Supabase (Transaction Pooler)
 DB_URL = "postgresql://postgres.jmjbygwaatketijoifrw:Raybarcelona12345*@aws-0-us-east-2.pooler.supabase.com:6543/postgres"
 
-@st.cache_resource
-def conectar():
+# Función de conexión
+def get_connection():
     return psycopg2.connect(DB_URL)
 
-def obtener_datos():
-    conn = conectar()
+# Insertar o actualizar material
+def insertar_material(nombre, cantidad, min_stock, max_stock):
+    conn = get_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM inventario;")
-    columnas = [desc[0] for desc in cursor.description]
-    datos = cursor.fetchall()
-    df = pd.DataFrame(datos, columns=columnas)
-    cursor.close()
-    conn.close()
-    return df
+    try:
+        cursor.execute("""
+            INSERT INTO inventario (nombre, cantidad, min_stock, max_stock)
+            VALUES (%s, %s, %s, %s)
+            ON CONFLICT (nombre) DO UPDATE SET
+                cantidad = EXCLUDED.cantidad,
+                min_stock = EXCLUDED.min_stock,
+                max_stock = EXCLUDED.max_stock;
+        """, (nombre, cantidad, min_stock, max_stock))
+        conn.commit()
+        st.success(f"✅ Material '{nombre}' registrado correctamente.")
+    except Exception as e:
+        st.error(f"❌ Error al insertar material: {e}")
+    finally:
+        cursor.close()
+        conn.close()
 
-def obtener_productos():
-    df = obtener_datos()
-    return sorted(df['producto'].unique())
-
-def insertar_movimiento(producto, cantidad, tipo):
-    conn = conectar()
+# Consultar todo el inventario
+def obtener_inventario():
+    conn = get_connection()
     cursor = conn.cursor()
-    cursor.execute("""
-        INSERT INTO movimientos (producto, cantidad, tipo, fecha)
-        VALUES (%s, %s, %s, NOW());
-    """, (producto, cantidad, tipo))
-    conn.commit()
-    cursor.close()
-    conn.close()
+    try:
+        cursor.execute("SELECT nombre, cantidad, min_stock, max_stock FROM inventario ORDER BY nombre;")
+        rows = cursor.fetchall()
+        return rows
+    except Exception as e:
+        st.error(f"❌ Error al obtener inventario: {e}")
+        return []
+    finally:
+        cursor.close()
+        conn.close()
 
-def actualizar_stock(producto, cantidad, tipo):
-    conn = conectar()
+# Registrar salida de material
+def registrar_salida(nombre, cantidad_salida):
+    conn = get_connection()
     cursor = conn.cursor()
-    operador = '+' if tipo == 'entrada' else '-'
-    cursor.execute(f"""
-        UPDATE inventario
-        SET total = GREATEST(total {operador} %s, 0)
-        WHERE producto = %s;
-    """, (cantidad, producto))
-    conn.commit()
-    cursor.close()
-    conn.close()
-
-def actualizar_stock_fisico(producto, cantidad_fisico):
-    conn = conectar()
-    cursor = conn.cursor()
-    cursor.execute("""
-        UPDATE inventario
-        SET fisico = %s
-        WHERE producto = %s;
-    """, (cantidad_fisico, producto))
-    conn.commit()
-    cursor.close()
-    conn.close()
-
+    try:
+        cursor.execute("""
+            UPDATE inventario
+            SET cantidad = cantidad - %s
+            WHERE nombre = %s;
+        """, (cantidad_salida, nombre))
+        conn.commit()
+        st.success(f"✅ Salida registrada correctamente para '{nombre}'.")
+    except Exception as e:
+        st.error(f"❌ Error al registrar salida: {e}")
+    finally:
+        cursor.close()
+        conn.close()
