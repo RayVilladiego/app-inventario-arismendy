@@ -1,34 +1,22 @@
-# modules/mod_auditor.py
-
 import streamlit as st
-from db import fetch_query, execute_query
-from datetime import datetime
+import pandas as pd
+from db import obtener_datos_productos
 
-def run():
-    st.title("🔍 Módulo Auditor - Conteo Físico y Comparación")
+def modulo_auditoria():
+    st.title("🕵️ Módulo de Auditoría - Control y Verificación de Inventario")
 
-    df = fetch_query("SELECT * FROM inventario ORDER BY nombre ASC")
+    st.write("📋 Aquí puedes visualizar el estado actual del inventario y registrar los conteos físicos para comparar.")
 
-    codigo = st.selectbox("Selecciona un producto", df["codigo"] + " - " + df["nombre"])
-    cantidad_fisica = st.number_input("Cantidad observada (física)", min_value=0, step=1)
-    operario = st.text_input("Nombre del auditor")
+    df = obtener_datos_productos()
+    if df.empty:
+        st.warning("No hay productos registrados.")
+        return
 
-    if st.button("Registrar conteo físico"):
-        selected = df[df["codigo"] == codigo.split(" - ")[0]].iloc[0]
-        diferencia = cantidad_fisica - selected["total"]
+    df['Conteo Físico'] = 0
 
-        execute_query("""
-            INSERT INTO conteo_fisico (fecha, codigo, cantidad_fisica, operario, diferencia)
-            VALUES (%s, %s, %s, %s, %s)
-        """, (datetime.now(), selected["codigo"], cantidad_fisica, operario, diferencia))
+    conteo = st.experimental_data_editor(df[['codigo', 'material', 'medida', 'total', 'Conteo Físico']], num_rows="dynamic", use_container_width=True)
 
-        if diferencia == 0:
-            st.success("✔️ Conteo coincidente con el sistema.")
-        elif diferencia > 0:
-            st.warning(f"🟡 Sobrante detectado (+{diferencia})")
-        else:
-            st.error(f"🔴 Faltante detectado ({diferencia})")
-
-    st.markdown("### 📊 Comparador físico vs sistema")
-    df_conteos = fetch_query("SELECT * FROM conteo_fisico ORDER BY fecha DESC LIMIT 20")
-    st.dataframe(df_conteos)
+    if st.button("📊 Comparar Inventario Físico vs. Sistema"):
+        conteo['Diferencia'] = conteo['Conteo Físico'] - conteo['total']
+        st.dataframe(conteo, use_container_width=True)
+        st.success("✅ Comparación realizada. Revisa la columna 'Diferencia' para identificar inconsistencias.")
