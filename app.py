@@ -1,23 +1,50 @@
 import streamlit as st
-from login import login
-from mod_compras import interfaz_compras
-from mod_almacen import interfaz_almacen
-from mod_auditor import interfaz_auditor
-from dashboard import mostrar_dashboard
+from login import login_screen
+from mod_compras import compras_screen
+from mod_almacen import almacen_screen
+from mod_auditor import auditor_screen
+from dashboard import dashboard_screen
 
-# Simulación de login con perfiles
-perfil = login()
+# Configuración general de la app
+st.set_page_config(page_title="Inventario Arismendy", layout="wide")
 
-st.sidebar.title("Navegación")
+# Estados de sesión
+if 'autenticado' not in st.session_state:
+    st.session_state.autenticado = False
+if 'usuario' not in st.session_state:
+    st.session_state.usuario = ''
+if 'rol' not in st.session_state:
+    st.session_state.rol = ''
 
-if perfil == "Compras":
-    interfaz_compras()
+# Función para manejar el menú lateral según el rol
+def mostrar_menu():
+    st.sidebar.title("Menú Principal")
+    opciones = ["Dashboard"]
 
-elif perfil == "Almacén":
-    interfaz_almacen()
+    if st.session_state.rol == "Compras":
+        opciones.append("Módulo Compras")
+    elif st.session_state.rol == "Almacén":
+        opciones.append("Módulo Almacén")
+    elif st.session_state.rol == "Auditor":
+        opciones.append("Módulo Auditor")
 
-elif perfil == "Auditor":
-    interfaz_auditor()
+    seleccion = st.sidebar.radio("Navegación", opciones)
 
-if st.sidebar.button("Dashboard"):
-    mostrar_dashboard()
+    if seleccion == "Dashboard":
+        dashboard_screen()
+    elif seleccion == "Módulo Compras":
+        compras_screen()
+    elif seleccion == "Módulo Almacén":
+        almacen_screen()
+    elif seleccion == "Módulo Auditor":
+        auditor_screen()
+
+# Control de flujo de la app
+def main():
+    if not st.session_state.autenticado:
+        login_screen()
+    else:
+        mostrar_menu()
+
+if __name__ == "__main__":
+    main()
