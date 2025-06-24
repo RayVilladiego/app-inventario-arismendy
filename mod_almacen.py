@@ -1,22 +1,18 @@
 import streamlit as st
-from db import actualizar_stock
-import pandas as pd
+from db import insertar_movimiento, obtener_productos, actualizar_stock
+from utils import calcular_estado
 
-def modulo_almacen():
-    st.title("📦 Módulo de Almacén - Registro de Entradas/Salidas")
+def almacen():
+    st.title("🏗️ Módulo de Almacén")
 
-    with st.form("form_almacen"):
-        codigo = st.text_input("Código del producto")
-        cantidad = st.number_input("Cantidad", min_value=1, step=1)
-        movimiento = st.radio("Tipo de movimiento", ["entrada", "salida"])
-        submit = st.form_submit_button("Registrar movimiento")
+    productos = obtener_productos()
+    producto = st.selectbox("Selecciona un producto", productos)
 
-    if submit:
-        if not codigo:
-            st.warning("⚠️ Debes ingresar el código del producto.")
-        else:
-            exito = actualizar_stock(codigo, cantidad, movimiento=movimiento)
-            if exito:
-                st.success(f"✔ Movimiento de {movimiento} registrado correctamente.")
-            else:
-                st.error("❌ Error al registrar el movimiento. Revisa si el producto existe o si hay suficiente stock.")
+    cantidad = st.number_input("Cantidad a retirar", min_value=1, step=1)
+
+    if st.button("Registrar salida"):
+        insertar_movimiento(producto, cantidad, "salida")
+        actualizar_stock(producto, cantidad, tipo="salida")
+
+        nuevo_estado = calcular_estado(producto)
+        st.success(f"✅ Salida registrada. Nuevo estado del producto: {nuevo_estado}")
