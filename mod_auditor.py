@@ -13,7 +13,7 @@ def auditor():
         return
 
     st.subheader("📝 Registro de conteo físico")
-    producto = st.selectbox("Selecciona un producto", df['producto'].unique())
+    producto = st.selectbox("Selecciona un producto", df['nombre'].unique())  # Cambiado a 'nombre'
     conteo_fisico = st.number_input("Cantidad física encontrada", min_value=0, step=1)
 
     if st.button("Registrar conteo físico"):
@@ -23,4 +23,15 @@ def auditor():
 
     st.divider()
     st.subheader("📋 Comparación: Stock Digital vs Físico")
-    st.dataframe(df[['producto', 'Total', 'Fisico', 'Estado']], use_container_width=True)
+
+    # Asegura que las columnas existan para mostrarlas
+    if {'nombre', 'cantidad', 'fisico', 'estado'}.issubset(df.columns):
+        df_mostrar = df.rename(columns={
+            'nombre': 'Producto',
+            'cantidad': 'Total',
+            'fisico': 'Fisico',
+            'estado': 'Estado'
+        })
+        st.dataframe(df_mostrar[['Producto', 'Total', 'Fisico', 'Estado']], use_container_width=True)
+    else:
+        st.error("Faltan columnas necesarias en la base de datos. Verifica que existan: nombre, cantidad, fisico, estado.")
