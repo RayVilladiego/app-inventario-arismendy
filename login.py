@@ -3,6 +3,7 @@ import streamlit as st
 # Diccionario simulado de usuarios
 usuarios = {
     "admin": {"contraseña": "1234", "rol": "Compras"},
+    "compras": {"contraseña": "compra123", "rol": "Compras"},
     "almacen": {"contraseña": "almacen123", "rol": "Almacén"},
     "auditor": {"contraseña": "auditor123", "rol": "Auditor"}
 }
@@ -24,3 +25,4 @@ def login_screen():
             st.experimental_rerun()
         else:
             st.error("Usuario o contraseña incorrectos")
+
